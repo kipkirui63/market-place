@@ -55,7 +55,16 @@ export default function AuthPage() {
                       return;
                     }
                     
-                    loginMutation.mutate({ username, password });
+                    loginMutation.mutate({ username, password }, {
+                      onSuccess: () => {
+                        console.log('Successfully logged in, redirecting to homepage');
+                        // The user will be automatically updated in the useAuth context
+                        // Wait a moment for the user data to be updated before redirecting
+                        setTimeout(() => {
+                          window.location.href = '/';
+                        }, 500);
+                      }
+                    });
                   }}
                   className="space-y-4"
                 >
@@ -146,7 +155,16 @@ export default function AuthPage() {
                       return;
                     }
                     
-                    registerMutation.mutate({ username, password });
+                    registerMutation.mutate({ username, password }, {
+                      onSuccess: () => {
+                        console.log('Successfully registered, redirecting to homepage');
+                        // The user will be automatically updated in the useAuth context
+                        // Wait a moment for the user data to be updated before redirecting
+                        setTimeout(() => {
+                          window.location.href = '/';
+                        }, 500);
+                      }
+                    });
                   }}
                   className="space-y-4"
                 >
