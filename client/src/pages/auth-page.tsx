@@ -61,8 +61,14 @@ export default function AuthPage() {
   };
 
   const onRegisterSubmit = (data: RegisterFormValues) => {
+    console.log('Register form data:', data);
     const { confirmPassword, ...rest } = data;
     registerMutation.mutate(rest);
+  };
+  
+  // Debug form field changes
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, formType: 'login' | 'register') => {
+    console.log('Input changed:', e.target.name, e.target.value);
   };
 
   // If the user is already logged in, redirect to home
@@ -104,7 +110,14 @@ export default function AuthPage() {
                           <FormControl>
                             <Input
                               placeholder="Enter your username"
-                              {...field}
+                              onChange={(e) => {
+                                handleInputChange(e, 'login');
+                                field.onChange(e);
+                              }}
+                              value={field.value}
+                              name={field.name}
+                              onBlur={field.onBlur}
+                              ref={field.ref}
                             />
                           </FormControl>
                           <FormMessage />
@@ -122,7 +135,14 @@ export default function AuthPage() {
                             <Input
                               type="password"
                               placeholder="Enter your password"
-                              {...field}
+                              onChange={(e) => {
+                                handleInputChange(e, 'login');
+                                field.onChange(e);
+                              }}
+                              value={field.value}
+                              name={field.name}
+                              onBlur={field.onBlur}
+                              ref={field.ref}
                             />
                           </FormControl>
                           <FormMessage />
@@ -181,7 +201,14 @@ export default function AuthPage() {
                           <FormControl>
                             <Input
                               placeholder="Choose a username"
-                              {...field}
+                              onChange={(e) => {
+                                handleInputChange(e, 'register');
+                                field.onChange(e);
+                              }}
+                              value={field.value}
+                              name={field.name}
+                              onBlur={field.onBlur}
+                              ref={field.ref}
                             />
                           </FormControl>
                           <FormMessage />
@@ -199,7 +226,14 @@ export default function AuthPage() {
                             <Input
                               type="password"
                               placeholder="Create a password"
-                              {...field}
+                              onChange={(e) => {
+                                handleInputChange(e, 'register');
+                                field.onChange(e);
+                              }}
+                              value={field.value}
+                              name={field.name}
+                              onBlur={field.onBlur}
+                              ref={field.ref}
                             />
                           </FormControl>
                           <FormMessage />
@@ -217,7 +251,14 @@ export default function AuthPage() {
                             <Input
                               type="password"
                               placeholder="Confirm your password"
-                              {...field}
+                              onChange={(e) => {
+                                handleInputChange(e, 'register');
+                                field.onChange(e);
+                              }}
+                              value={field.value}
+                              name={field.name}
+                              onBlur={field.onBlur}
+                              ref={field.ref}
                             />
                           </FormControl>
                           <FormMessage />
