@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/hooks/use-auth";
 import { useState } from "react";
 import {
   Sheet,
@@ -8,13 +9,22 @@ import {
   SheetTitle,
   SheetClose,
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Input } from "@/components/ui/input";
-import { Search, Menu, ShoppingCart, X } from "lucide-react";
+import { Search, Menu, ShoppingCart, X, User, LogOut } from "lucide-react";
 
 const Header = () => {
   const { items, isCartOpen, setIsCartOpen } = useCart();
+  const { user, logoutMutation } = useAuth();
   const [location, navigate] = useLocation();
   const isMobile = useIsMobile();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -102,11 +112,39 @@ const Header = () => {
             </Button>
           </div>
 
-          {/* Sign In Button (Desktop) */}
+          {/* Auth Buttons (Desktop) */}
           <div className="hidden md:block">
-            <Button className="bg-primary hover:bg-primary/90 text-white">
-              Sign In
-            </Button>
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                    <User className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Account</DropdownMenuLabel>
+                  <DropdownMenuLabel>Hello, {user.username}</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>My Apps</DropdownMenuItem>
+                  <DropdownMenuItem>Settings</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => logoutMutation.mutate()}
+                    disabled={logoutMutation.isPending}
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button 
+                className="bg-primary hover:bg-primary/90 text-white"
+                onClick={() => navigate("/auth")}
+              >
+                Sign In
+              </Button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -167,7 +205,29 @@ const Header = () => {
                   </a>
                 </li>
                 <li>
-                  <Button className="w-full mt-4">Sign In</Button>
+                  {user ? (
+                    <Button 
+                      className="w-full mt-4 flex items-center justify-center" 
+                      onClick={() => {
+                        logoutMutation.mutate();
+                        setIsMobileMenuOpen(false);
+                      }}
+                      disabled={logoutMutation.isPending}
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Sign Out
+                    </Button>
+                  ) : (
+                    <Button 
+                      className="w-full mt-4" 
+                      onClick={() => {
+                        navigate("/auth");
+                        setIsMobileMenuOpen(false);
+                      }}
+                    >
+                      Sign In
+                    </Button>
+                  )}
                 </li>
               </ul>
             </nav>

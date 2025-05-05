@@ -8,8 +8,11 @@ import {
 } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
+import { setupAuth } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup authentication
+  setupAuth(app);
   // Get all products
   app.get("/api/products", async (req, res) => {
     try {
@@ -67,7 +70,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create the order
       const orderData = {
-        userId: null, // No user authentication yet
+        userId: req.isAuthenticated() ? (req.user as any).id : null,
         total: parsedCheckoutData.total,
         status: "completed",
       };
