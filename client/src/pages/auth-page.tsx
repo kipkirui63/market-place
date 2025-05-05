@@ -1,75 +1,14 @@
 import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { insertUserSchema } from "@shared/schema";
 import { Loader2 } from "lucide-react";
 import { Redirect } from "wouter";
-
-const loginSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters").nonempty("Username is required"),
-  password: z.string().min(6, "Password must be at least 6 characters").nonempty("Password is required"),
-});
-
-const registerSchema = insertUserSchema
-  .extend({
-    confirmPassword: z.string().nonempty("Please confirm your password"),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
-
-type LoginFormValues = z.infer<typeof loginSchema>;
-type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
   const [isLoginView, setIsLoginView] = useState(true);
   const { user, loginMutation, registerMutation, isLoading } = useAuth();
-
-  const loginForm = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      username: "",
-      password: "",
-    },
-  });
-
-  const registerForm = useForm<RegisterFormValues>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: {
-      username: "",
-      password: "",
-      confirmPassword: "",
-    },
-  });
-
-  const onLoginSubmit = (data: LoginFormValues) => {
-    loginMutation.mutate(data);
-  };
-
-  const onRegisterSubmit = (data: RegisterFormValues) => {
-    console.log('Register form data:', data);
-    const { confirmPassword, ...rest } = data;
-    registerMutation.mutate(rest);
-  };
-  
-  // Debug form field changes
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, formType: 'login' | 'register') => {
-    console.log('Input changed:', e.target.name, e.target.value);
-  };
 
   // If the user is already logged in, redirect to home
   if (user) {
@@ -96,76 +35,70 @@ export default function AuthPage() {
                 <CardTitle>Sign In</CardTitle>
               </CardHeader>
               <CardContent>
-                <Form {...loginForm}>
-                  <form
-                    onSubmit={loginForm.handleSubmit(onLoginSubmit)}
-                    className="space-y-4"
-                  >
-                    <FormField
-                      control={loginForm.control}
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const form = e.currentTarget;
+                    const username = form.username.value;
+                    const password = form.password.value;
+                    
+                    console.log('Login form submission:', { username, password });
+                    
+                    // Validation
+                    if (!username || username.length < 3) {
+                      alert('Username must be at least 3 characters');
+                      return;
+                    }
+                    
+                    if (!password || password.length < 6) {
+                      alert('Password must be at least 6 characters');
+                      return;
+                    }
+                    
+                    loginMutation.mutate({ username, password });
+                  }}
+                  className="space-y-4"
+                >
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" htmlFor="login-username">Username</label>
+                    <Input
+                      id="login-username"
                       name="username"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Username</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Enter your username"
-                              onChange={(e) => {
-                                handleInputChange(e, 'login');
-                                field.onChange(e);
-                              }}
-                              value={field.value}
-                              name={field.name}
-                              onBlur={field.onBlur}
-                              ref={field.ref}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                      placeholder="Enter your username"
+                      onChange={(e) => {
+                        console.log('Login username changed:', e.target.value);
+                      }}
                     />
-
-                    <FormField
-                      control={loginForm.control}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" htmlFor="login-password">Password</label>
+                    <Input
+                      id="login-password"
                       name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Password</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="password"
-                              placeholder="Enter your password"
-                              onChange={(e) => {
-                                handleInputChange(e, 'login');
-                                field.onChange(e);
-                              }}
-                              value={field.value}
-                              name={field.name}
-                              onBlur={field.onBlur}
-                              ref={field.ref}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                      type="password"
+                      placeholder="Enter your password"
+                      onChange={(e) => {
+                        console.log('Login password changed:', e.target.value);
+                      }}
                     />
-
-                    <Button
-                      type="submit"
-                      className="w-full"
-                      disabled={loginMutation.isPending}
-                    >
-                      {loginMutation.isPending ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Signing in...
-                        </>
-                      ) : (
-                        "Sign In"
-                      )}
-                    </Button>
-                  </form>
-                </Form>
+                  </div>
+                  
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={loginMutation.isPending}
+                  >
+                    {loginMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Signing in...
+                      </>
+                    ) : (
+                      "Sign In"
+                    )}
+                  </Button>
+                </form>
 
                 <div className="mt-4 text-center">
                   <span className="text-sm text-gray-600">
@@ -187,101 +120,89 @@ export default function AuthPage() {
                 <CardTitle>Create Account</CardTitle>
               </CardHeader>
               <CardContent>
-                <Form {...registerForm}>
-                  <form
-                    onSubmit={registerForm.handleSubmit(onRegisterSubmit)}
-                    className="space-y-4"
-                  >
-                    <FormField
-                      control={registerForm.control}
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const form = e.currentTarget;
+                    const username = form.username.value;
+                    const password = form.password.value;
+                    const confirmPassword = form.confirmPassword.value;
+                    
+                    console.log('Manual form submission:', { username, password, confirmPassword });
+                    
+                    // Validation
+                    if (!username || username.length < 3) {
+                      alert('Username must be at least 3 characters');
+                      return;
+                    }
+                    
+                    if (!password || password.length < 6) {
+                      alert('Password must be at least 6 characters');
+                      return;
+                    }
+                    
+                    if (password !== confirmPassword) {
+                      alert('Passwords do not match');
+                      return;
+                    }
+                    
+                    registerMutation.mutate({ username, password });
+                  }}
+                  className="space-y-4"
+                >
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" htmlFor="username">Username</label>
+                    <Input
+                      id="username"
                       name="username"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Username</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Choose a username"
-                              onChange={(e) => {
-                                handleInputChange(e, 'register');
-                                field.onChange(e);
-                              }}
-                              value={field.value}
-                              name={field.name}
-                              onBlur={field.onBlur}
-                              ref={field.ref}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                      placeholder="Choose a username"
+                      onChange={(e) => {
+                        console.log('Username changed:', e.target.value);
+                      }}
                     />
-
-                    <FormField
-                      control={registerForm.control}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" htmlFor="password">Password</label>
+                    <Input
+                      id="password"
                       name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Password</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="password"
-                              placeholder="Create a password"
-                              onChange={(e) => {
-                                handleInputChange(e, 'register');
-                                field.onChange(e);
-                              }}
-                              value={field.value}
-                              name={field.name}
-                              onBlur={field.onBlur}
-                              ref={field.ref}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                      type="password"
+                      placeholder="Create a password"
+                      onChange={(e) => {
+                        console.log('Password changed:', e.target.value);
+                      }}
                     />
-
-                    <FormField
-                      control={registerForm.control}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" htmlFor="confirmPassword">Confirm Password</label>
+                    <Input
+                      id="confirmPassword"
                       name="confirmPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Confirm Password</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="password"
-                              placeholder="Confirm your password"
-                              onChange={(e) => {
-                                handleInputChange(e, 'register');
-                                field.onChange(e);
-                              }}
-                              value={field.value}
-                              name={field.name}
-                              onBlur={field.onBlur}
-                              ref={field.ref}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                      type="password"
+                      placeholder="Confirm your password"
+                      onChange={(e) => {
+                        console.log('Confirm password changed:', e.target.value);
+                      }}
                     />
-
-                    <Button
-                      type="submit"
-                      className="w-full"
-                      disabled={registerMutation.isPending}
-                    >
-                      {registerMutation.isPending ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Creating account...
-                        </>
-                      ) : (
-                        "Create Account"
-                      )}
-                    </Button>
-                  </form>
-                </Form>
+                  </div>
+                  
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={registerMutation.isPending}
+                  >
+                    {registerMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating account...
+                      </>
+                    ) : (
+                      "Create Account"
+                    )}
+                  </Button>
+                </form>
 
                 <div className="mt-4 text-center">
                   <span className="text-sm text-gray-600">
