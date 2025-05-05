@@ -4,6 +4,8 @@ import {
   orders, type Order, type InsertOrder,
   orderItems, type OrderItem, type InsertOrderItem
 } from "@shared/schema";
+import session from "express-session";
+import createMemoryStore from "memorystore";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -28,6 +30,9 @@ export interface IStorage {
   // Order Item methods
   createOrderItem(orderItem: InsertOrderItem): Promise<OrderItem>;
   getOrderItemsByOrderId(orderId: number): Promise<OrderItem[]>;
+  
+  // Session store
+  sessionStore: session.Store;
 }
 
 export class MemStorage implements IStorage {
@@ -40,6 +45,7 @@ export class MemStorage implements IStorage {
   productIdCounter: number;
   orderIdCounter: number;
   orderItemIdCounter: number;
+  sessionStore: session.Store;
 
   constructor() {
     this.users = new Map();
@@ -51,6 +57,12 @@ export class MemStorage implements IStorage {
     this.productIdCounter = 1;
     this.orderIdCounter = 1;
     this.orderItemIdCounter = 1;
+    
+    // Set up the session store
+    const MemoryStore = createMemoryStore(session);
+    this.sessionStore = new MemoryStore({
+      checkPeriod: 86400000 // 24 hours
+    });
     
     // Initialize with sample products
     this.initializeProducts();
