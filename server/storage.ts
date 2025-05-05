@@ -35,40 +35,27 @@ export interface IStorage {
   sessionStore: session.Store;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private productsMap: Map<number, Product>;
-  private orders: Map<number, Order>;
-  private orderItems: Map<number, OrderItem>;
-  
-  userIdCounter: number;
-  productIdCounter: number;
-  orderIdCounter: number;
-  orderItemIdCounter: number;
+export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
-    this.users = new Map();
-    this.productsMap = new Map();
-    this.orders = new Map();
-    this.orderItems = new Map();
-    
-    this.userIdCounter = 1;
-    this.productIdCounter = 1;
-    this.orderIdCounter = 1;
-    this.orderItemIdCounter = 1;
-    
     // Set up the session store
     const MemoryStore = createMemoryStore(session);
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000 // 24 hours
     });
     
-    // Initialize with sample products
-    this.initializeProducts();
+    // Initialize with sample products if none exist
+    this.initializeProductsIfEmpty();
   }
   
-  private initializeProducts() {
+  private async initializeProductsIfEmpty() {
+    // Check if we already have products
+    const existingProducts = await this.getProducts();
+    if (existingProducts.length > 0) {
+      return;
+    }
+    
     const sampleProducts: InsertProduct[] = [
       {
         name: "AI Assistant Pro",
@@ -135,97 +122,108 @@ export class MemStorage implements IStorage {
       }
     ];
     
-    sampleProducts.forEach((product) => {
-      this.createProduct(product);
-    });
+    for (const product of sampleProducts) {
+      await this.createProduct(product);
+    }
   }
 
   // User methods
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const { db } = await import('./db');
+    const { eq } = await import('drizzle-orm');
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const { db } = await import('./db');
+    const { eq } = await import('drizzle-orm');
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.userIdCounter++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const { db } = await import('./db');
+    const [user] = await db.insert(users).values(insertUser).returning();
     return user;
   }
   
   // Product methods
   async getProducts(): Promise<Product[]> {
-    return Array.from(this.productsMap.values());
+    const { db } = await import('./db');
+    return db.select().from(products);
   }
   
   async getProductById(id: number): Promise<Product | undefined> {
-    return this.productsMap.get(id);
+    const { db } = await import('./db');
+    const { eq } = await import('drizzle-orm');
+    const [product] = await db.select().from(products).where(eq(products.id, id));
+    return product;
   }
   
   async getProductsByCategory(category: string): Promise<Product[]> {
+    const { db } = await import('./db');
+    const { eq } = await import('drizzle-orm');
+    
     if (category === "All Apps") {
       return this.getProducts();
     }
     
-    return Array.from(this.productsMap.values())
-      .filter(product => product.category === category);
+    return db.select().from(products).where(eq(products.category, category));
   }
   
   async getFeaturedProducts(): Promise<Product[]> {
-    return Array.from(this.productsMap.values())
-      .filter(product => product.featured === 1);
+    const { db } = await import('./db');
+    const { eq } = await import('drizzle-orm');
+    return db.select().from(products).where(eq(products.featured, 1));
   }
   
   async createProduct(insertProduct: InsertProduct): Promise<Product> {
-    const id = this.productIdCounter++;
-    const product: Product = { 
-      ...insertProduct, 
-      id,
+    const { db } = await import('./db');
+    const product = {
+      ...insertProduct,
       featured: insertProduct.featured ?? 0,
       rating: insertProduct.rating ?? "0",
       reviewCount: insertProduct.reviewCount ?? 0,
       badge: insertProduct.badge ?? null
     };
-    this.productsMap.set(id, product);
-    return product;
+    
+    const [newProduct] = await db.insert(products).values(product).returning();
+    return newProduct;
   }
   
   // Order methods
   async createOrder(insertOrder: InsertOrder): Promise<Order> {
-    const id = this.orderIdCounter++;
-    const now = new Date();
-    const order: Order = { 
-      ...insertOrder, 
-      id, 
-      createdAt: now,
+    const { db } = await import('./db');
+    const order = {
+      ...insertOrder,
       status: insertOrder.status ?? "pending",
       userId: insertOrder.userId ?? null
     };
-    this.orders.set(id, order);
-    return order;
+    
+    const [newOrder] = await db.insert(orders).values(order).returning();
+    return newOrder;
   }
   
   async getOrderById(id: number): Promise<Order | undefined> {
-    return this.orders.get(id);
+    const { db } = await import('./db');
+    const { eq } = await import('drizzle-orm');
+    const [order] = await db.select().from(orders).where(eq(orders.id, id));
+    return order;
   }
   
   // Order Item methods
   async createOrderItem(insertOrderItem: InsertOrderItem): Promise<OrderItem> {
-    const id = this.orderItemIdCounter++;
-    const orderItem: OrderItem = { ...insertOrderItem, id };
-    this.orderItems.set(id, orderItem);
+    const { db } = await import('./db');
+    const [orderItem] = await db.insert(orderItems).values(insertOrderItem).returning();
     return orderItem;
   }
   
   async getOrderItemsByOrderId(orderId: number): Promise<OrderItem[]> {
-    return Array.from(this.orderItems.values())
-      .filter(item => item.orderId === orderId);
+    const { db } = await import('./db');
+    const { eq } = await import('drizzle-orm');
+    return db.select().from(orderItems).where(eq(orderItems.orderId, orderId));
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

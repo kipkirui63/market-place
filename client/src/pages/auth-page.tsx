@@ -19,13 +19,13 @@ import { Loader2 } from "lucide-react";
 import { Redirect } from "wouter";
 
 const loginSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  username: z.string().min(3, "Username must be at least 3 characters").nonempty("Username is required"),
+  password: z.string().min(6, "Password must be at least 6 characters").nonempty("Password is required"),
 });
 
 const registerSchema = insertUserSchema
   .extend({
-    confirmPassword: z.string(),
+    confirmPassword: z.string().nonempty("Please confirm your password"),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
